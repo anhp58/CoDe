@@ -58,9 +58,9 @@ object Main {
 
   def main(args: Array[String]): Unit = {
 
-//    val configSp: SparkConf = new SparkConf().setAppName("CoDe")
-//    // sparkContext is metadata about spark cluster used to creating RDD
-//    val sparkContext: SparkContext = new SparkContext(configSp)
+    val configSp: SparkConf = new SparkConf().setAppName("CoDe")
+    // sparkContext is metadata about spark cluster used to creating RDD
+    val sparkContext: SparkContext = new SparkContext(configSp)
 
     val pathSingleBand:String = "F:\\py_code_data\\TOA_VNR20150117_XS_coastal.tif"
     val pathMultipleBand:String = "F:\\py_code_data\\TOA_VNR20150117_PXS_Clip_coastal.tif"
