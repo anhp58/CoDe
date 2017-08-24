@@ -62,8 +62,9 @@ object Main {
     // sparkContext is metadata about spark cluster used to creating RDD
     val sparkContext: SparkContext = new SparkContext(configSp)
 
-    val pathSingleBand:String = "F:\\py_code_data\\TOA_VNR20150117_XS_coastal.tif"
-    val pathMultipleBand:String = "F:\\py_code_data\\TOA_VNR20150117_PXS_Clip_coastal.tif"
+
+    val pathSingleBand:String = "C:\\data\\TOA_VNR20150117_XS_coastal.tif"
+    val pathMultipleBand:String = "C:\\data\\TOA_VNR20150117_PXS_Clip_coastal.tif"
     val geoTiffMul: MultibandGeoTiff = GeoTiffReader.readMultiband(pathMultipleBand)
     val dataBand:Array[Array[Double]] = Open4BandTif(pathMultipleBand)
     val Ysize = getRow(pathMultipleBand)
@@ -187,5 +188,13 @@ object Main {
         else maskDataFinal(y,x) = 0
       }
     }
+    var count = 0
+    for ( y <- 0 to Ysize - 1 ) {
+      for (x <- 0 to Xsize - 1) {
+        if (maskDataFinal(y,x) ==1)
+          count = count + 1
+      }
+    }
+    println(count)
   }
 }
