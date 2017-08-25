@@ -2,16 +2,13 @@ package main
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.raster.io.geotiff._
+import geotrellis.spark.io.hadoop._
 import geotrellis.raster._
-import geotrellis.raster.io.geotiff.writer.GeoTiffWriter
 import org.nd4s.Implicits._
 import org.nd4j.linalg.factory.Nd4j
-import org.nd4j.linalg.factory.Nd4jBackend
-import geotrellis.spark._
-import geotrellis.spark.io._
+import geotrellis.vector.ProjectedExtent
 
 object Main {
   def Open4BandTif (mulBandImg:String):Array[Array[Double]] = {
@@ -56,12 +53,24 @@ object Main {
     ((B1 + B2 + B3 + B4)/4).toFloat
   }
 
+  //commit 2 RDD
+  def readGeoTiff(sc: SparkContext, source: String): RDD[(ProjectedExtent, Tile)] = {
+    // Read the geotiff in as a single image RDD,
+    // using a method implicitly added to SparkContext by
+    // an implicit class available via the
+    // "import geotrellis.spark.io.hadoop._ " statement.
+    sc.hadoopGeoTiffRDD(source)
+  }
+  def setMaskCloudName(name:String): String = {
+    val maskCloudDir = "C:\\data\\Cloud_mask\\"
+    maskCloudDir + name + "_Cloud" + ".tif"
+  }
+
   def main(args: Array[String]): Unit = {
 
     val configSp: SparkConf = new SparkConf().setAppName("CoDe")
     // sparkContext is metadata about spark cluster used to creating RDD
     val sparkContext: SparkContext = new SparkContext(configSp)
-
 
     val pathSingleBand:String = "C:\\data\\TOA_VNR20150117_XS_coastal.tif"
     val pathMultipleBand:String = "C:\\data\\TOA_VNR20150117_PXS_Clip_coastal.tif"
@@ -69,6 +78,23 @@ object Main {
     val dataBand:Array[Array[Double]] = Open4BandTif(pathMultipleBand)
     val Ysize = getRow(pathMultipleBand)
     val Xsize = getCol(pathMultipleBand)
+
+
+    val cloudMaskFileName = setMaskCloudName("TOA_VNR20150117_PXS_Clip_coastal")
+
+    // commit 2 RDD
+//    val hdfsPrefix:String = "hdfs://"
+//    val namenodeIP:String = "192.168.2.23"
+//    val hadoopPort:String = "9000"
+//    val hadoopUrl:String = hdfsPrefix + namenodeIP + ":" + hadoopPort
+//    val fileName:String = "TOA_VNR20150117_PXS_Clip_coastal.tif"
+//    val userName = "pa/"
+//    val folderName = "IMG/"
+//
+//    val dataBandRdd = sparkContext.hadoopGeoTiffRDD(hadoopUrl + "/user/" + userName + folderName + fileName)
+    //
+
+
 
     println("image size:" + "[" + Xsize + "," + Ysize + "]")
     //create thin cloud mask band
@@ -188,13 +214,17 @@ object Main {
         else maskDataFinal(y,x) = 0
       }
     }
-    var count = 0
-    for ( y <- 0 to Ysize - 1 ) {
+    println("writing tiff image................")
+
+    var tiffMaskFinalData = Array.ofDim[Double](Ysize*Xsize)
+    var indexFinal = 0
+    for (y <- 0 to Ysize - 1) {
       for (x <- 0 to Xsize - 1) {
-        if (maskDataFinal(y,x) ==1)
-          count = count + 1
+        tiffMaskFinalData(indexFinal) = maskDataFinal(y,x)
+        indexFinal = indexFinal + 1
       }
     }
-    println(count)
+    val Tiff = DoubleArrayTile(tiffMaskFinalData, Xsize,Ysize).convert(FloatCellType)
+    SinglebandGeoTiff(Tiff, geoTiffMul.extent, geoTiffMul.crs).write(cloudMaskFileName)
   }
 }
