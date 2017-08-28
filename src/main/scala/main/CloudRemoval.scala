@@ -10,8 +10,8 @@ object CloudRemoval {
   def cloudRemoval (pathMultipleBand:String): Unit = {
     val geoTiffMul: MultibandGeoTiff = GeoTiffReader.readMultiband(pathMultipleBand)
     val dataBand:Array[Array[Double]] = Utilities.Open4BandTif(pathMultipleBand)
-    val Ysize = Utilities.getRow(pathMultipleBand)
-    val Xsize = Utilities.getCol(pathMultipleBand)
+    val Ysize = Utilities.getRowMultiBand(pathMultipleBand)
+    val Xsize = Utilities.getColMultiBand(pathMultipleBand)
 
     val cloudMaskFileName = Utilities.setMaskCloudName("TOA_VNR20150117_PXS_Clip_coastal")
 

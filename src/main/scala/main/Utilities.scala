@@ -1,7 +1,7 @@
 package main
 
 import geotrellis.raster.Tile
-import geotrellis.raster.io.geotiff.MultibandGeoTiff
+import geotrellis.raster.io.geotiff.{MultibandGeoTiff, SinglebandGeoTiff}
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.vector.ProjectedExtent
 import org.apache.spark.SparkContext
@@ -26,16 +26,35 @@ object Utilities {
     //return
     IndexArr
   }
-  def getRow (mulBandImg:String): Int = {
+  def Open1BandTif (singleBandImg: String): Array[Double] ={
+    var IndexArr: Array[Double] = Array()
+    //    val data:Array[Double] =
+    val geoTiffSingleBandImg:SinglebandGeoTiff = GeoTiffReader.readSingleband(singleBandImg)
+    IndexArr = geoTiffSingleBandImg.raster.toArrayDouble()
+    //return
+    IndexArr
+  }
+  def getRowMultiBand (mulBandImg:String): Int = {
     val geoTiffMulBandImg:MultibandGeoTiff = GeoTiffReader.readMultiband(mulBandImg)
     var row: Int = geoTiffMulBandImg.tile.rows
     row
   }
-  def getCol (mulBandImg:String): Int = {
-    val geoTiffMulBandImg:MultibandGeoTiff = GeoTiffReader.readMultiband(mulBandImg)
+  def getColMultiBand (mulBandImg:String): Int = {
+    val geoTiffSingleBandImg:SinglebandGeoTiff = GeoTiffReader.readSingleband(mulBandImg)
+    var col: Int = geoTiffSingleBandImg.tile.cols
+    col
+  }
+  def getRowSingleBand (singleBandImg:String): Int = {
+    val geoTiffSingleBandImg:SinglebandGeoTiff = GeoTiffReader.readSingleband(singleBandImg)
+    var row: Int = geoTiffSingleBandImg.tile.rows
+    row
+  }
+  def getColSingleBand (singleBandImg:String): Int = {
+    val geoTiffMulBandImg:MultibandGeoTiff = GeoTiffReader.readMultiband(singleBandImg)
     var col: Int = geoTiffMulBandImg.tile.cols
     col
   }
+
   def NDIndex (B1:Double, B2: Double): Float = {
     ((B1-B2)/(B1+B2)).toFloat
   }
@@ -67,4 +86,13 @@ object Utilities {
     val maskWaterDir = "C:\\data\\Water_mask\\"
     maskWaterDir + name + "_Water" + ".tif"
   }
+  def setMaskExpandName(name:String): String = {
+    val maskExpandDir = "C:\\data\\Expand\\"
+    maskExpandDir + name + "_Expand" + ".tif"
+  }
+  def setMaskRemainName(name:String): String = {
+    val maskRemainDir = "C:\\data\\Remain\\"
+    maskRemainDir + name + "_Remain" + ".tif"
+  }
+
 }
