@@ -149,5 +149,7 @@ object CloudRemoval {
     val Tiff = DoubleArrayTile(tiffMaskFinalData, Xsize, Ysize).convert(FloatCellType)
     SinglebandGeoTiff(Tiff, geoTiffMul.extent, geoTiffMul.crs).write(cloudMaskFileName)
     println("done removing cloud")
+    println(geoTiffMul.extent)
+    println(geoTiffMul.crs)
   }
 }

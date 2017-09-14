@@ -24,21 +24,15 @@ object WaterRemoval {
     for (index <- 0 until imgSize){
       tiffMaskFinalData(index) = waterMask(index)
     }
-
     //load data to RDD
-//    var waterMaskRdd = sc.parallelize(tiffMaskFinalData)
-//    val dataBandRdd_0 = sc.parallelize(dataBand(0))
-//    val dataBandRdd_3 = sc.parallelize(dataBand(3))
+    val dataBandRdd_0 = sc.parallelize(dataBand(0))
+    val dataBandRdd_3 = sc.parallelize(dataBand(3))
+    //distributed computing
+    val zipData = dataBandRdd_0.zip(dataBandRdd_3).map { case (a, b) => {if (Utilities.waterIndex(a, b) <= 0.1) 1.0 else 0.0} }
 
-    for (index <- 0 until imgSize) {
-      if (dataBand(0)(index) <= 0.0) tiffMaskFinalData(index) = -9999
-      else {
-        waterIndex = (dataBand(0)(index) - dataBand(3)(index))/(dataBand(0)(index) + dataBand(3)(index))
-        if (waterIndex <= 0.1) tiffMaskFinalData(index) = 1
-        else tiffMaskFinalData(index) = 0
-      }
-    }
-
+    //collect local data
+    tiffMaskFinalData = zipData.collect()
+    // write tiff
     val Tiff = DoubleArrayTile(tiffMaskFinalData, Xsize, Ysize).convert(FloatCellType)
     SinglebandGeoTiff(Tiff, geoTiffMul.extent, geoTiffMul.crs).write(waterMaskFileName)
     println("done removing water")

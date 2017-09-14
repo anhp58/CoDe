@@ -1,12 +1,14 @@
 package main
 
-import geotrellis.raster.Tile
+import geotrellis.raster.{DoubleArrayTile, FloatCellType, Tile}
 import geotrellis.raster.io.geotiff.{MultibandGeoTiff, SinglebandGeoTiff}
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
 import geotrellis.vector.ProjectedExtent
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import geotrellis.spark.io.hadoop._
+
+import scala.collection.mutable.ArrayBuffer
 
 object Utilities {
   def Max (B1:Double, B2: Double, B3:Double, B4: Double):Double = {
@@ -69,6 +71,9 @@ object Utilities {
   def Brightness (B1:Double, B2: Double, B3:Double, B4: Double):Float = {
     ((B1 + B2 + B3 + B4)/4).toFloat
   }
+  def waterIndex (B0: Double, B3: Double) : Float = {
+    ((B0 - B3)/(B0 + B3)).toFloat
+  }
 
   //commit 2 RDD
   def readGeoTiff(sc: SparkContext, source: String): RDD[(ProjectedExtent, Tile)] = {
@@ -86,6 +91,10 @@ object Utilities {
     val maskWaterDir = "C:\\data\\Water_mask\\"
     maskWaterDir + name + "_Water" + ".tif"
   }
+  def setMaskFeatureName(name:String, featureName: String): String = {
+    val maskNdviDir = "C:\\data\\Feature\\"
+    maskNdviDir + name + featureName + ".tif"
+  }
   def setMaskExpandName(name:String): String = {
     val maskExpandDir = "C:\\data\\Expand\\"
     maskExpandDir + name + "_Expand" + ".tif"
@@ -94,5 +103,35 @@ object Utilities {
     val maskRemainDir = "C:\\data\\Remain\\"
     maskRemainDir + name + "_Remain" + ".tif"
   }
-
+  def setMaskDifferenceName(name: String, featureName: String) : String = {
+    val maskNdviDir = "C:\\data\\Difference\\"
+    maskNdviDir + name + featureName + ".tif"
+  }
+  def setMaskChangeName(name: String, changeName: String) : String = {
+    val maskNdviDir = "C:\\data\\Change\\"
+    maskNdviDir + name + changeName + ".tif"
+  }
+  def comparison (a: Double) : Boolean = {
+    if (a != 1) true else false
+  }
+  def doubleArr2Tile (arr: Array[Double], Xsize: Int, Ysize:Int): Tile = {
+    DoubleArrayTile(arr, Xsize, Ysize).convert(FloatCellType)
+  }
+  def mean (arr: ArrayBuffer[Double]) : Double = {
+    val length: Int = arr.length
+    var sum:Double = 0.0
+    for (index <- 0 until length){
+      sum = sum + arr(index)
+    }
+    sum/length
+  }
+  def std (arr: ArrayBuffer[Double]) : Double = {
+    val length: Int = arr.length
+    val meanIndex:Double = mean(arr)
+    var devs:Double = 0.0
+    for (index <- 0 until  length) {
+      devs = devs + (arr(index) - meanIndex)*(arr(index) - meanIndex)
+    }
+    Math.sqrt(devs/(length-1))
+  }
 }
