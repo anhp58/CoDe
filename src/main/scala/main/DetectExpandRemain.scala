@@ -1,17 +1,14 @@
 package main
 
-import geotrellis.raster.{DoubleArrayTile, FloatCellType}
+import geotrellis.raster.{ArrayMultibandTile, DoubleArrayTile, FloatCellType}
 import geotrellis.raster.io.geotiff.{MultibandGeoTiff, SinglebandGeoTiff}
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
-import org.apache.spark.SparkContext
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4s.Implicits._
+import geotrellis.raster._
 
 object DetectExpandRemain {
-  def detectExpandRemain (target25: String, refCloud : String, refWater: String, targetCloud: String, targetWater: String): Array[Array[Array[Double]]] = {
-
-
-
+  def detectExpandRemain (target25: String, refCloud : String, refWater: String, targetCloud: String, targetWater: String, rb0Path: String, rb1Path: String, rb2Path: String, rb3Path: String, eb0Path: String, eb1Path: String, eb2Path: String, eb3Path: String): Array[Array[Array[Double]]] = {
     //get geo data Single Band
     val geoSingleTiff:SinglebandGeoTiff = GeoTiffReader.readSingleband(refCloud)
 
@@ -67,11 +64,11 @@ object DetectExpandRemain {
     for (bIndex <- 0 to 3){
       for (index <- 0 until Ysize*Xsize) {
         if (maskDataExpand(index) != 1.0) {
-          expandDataBand(bIndex)(index) = Double.NaN
+          expandDataBand(bIndex)(index) = Float.NaN
           counte = counte + 1
         }
         if (maskDataRemain(index) != 1.0) {
-          remainDataBand(bIndex)(index) = Double.NaN
+          remainDataBand(bIndex)(index) = Float.NaN
           countr = countr + 1
         }
       }
@@ -82,8 +79,28 @@ object DetectExpandRemain {
     val ArrayResult: Array[Array[Array[Double]]] = Array.ofDim(2)
     ArrayResult(0) = expandDataBand
     ArrayResult(1) = remainDataBand
+
+    println("------------------img extent----------------------")
+    println(geoTiffMul.extent.height)
+    println(geoTiffMul.extent.width)
+    println(geoTiffMul.crs)
+    val tiffRemainB0 = DoubleArrayTile(expandDataBand(0), Xsize, Ysize).convert(FloatCellType)
+    SinglebandGeoTiff(tiffRemainB0, geoTiffMul.extent, geoTiffMul.crs).write(rb0Path)
+    val tiffRemainB1 = DoubleArrayTile(expandDataBand(1), Xsize, Ysize).convert(FloatCellType)
+    SinglebandGeoTiff(tiffRemainB0, geoTiffMul.extent, geoTiffMul.crs).write(rb1Path)
+    val tiffRemainB2 = DoubleArrayTile(expandDataBand(2), Xsize, Ysize).convert(FloatCellType)
+    SinglebandGeoTiff(tiffRemainB0, geoTiffMul.extent, geoTiffMul.crs).write(rb2Path)
+    val tiffRemainB3 = DoubleArrayTile(expandDataBand(3), Xsize, Ysize).convert(FloatCellType)
+    SinglebandGeoTiff(tiffRemainB0, geoTiffMul.extent, geoTiffMul.crs).write(rb3Path)
+
+    val tiffExpandB0 = DoubleArrayTile(expandDataBand(0), Xsize, Ysize).convert(FloatCellType)
+    SinglebandGeoTiff(tiffExpandB0, geoTiffMul.extent, geoTiffMul.crs).write(eb0Path)
+    val tiffExpandB1 = DoubleArrayTile(expandDataBand(1), Xsize, Ysize).convert(FloatCellType)
+    SinglebandGeoTiff(tiffExpandB1, geoTiffMul.extent, geoTiffMul.crs).write(eb1Path)
+    val tiffExpandB2 = DoubleArrayTile(expandDataBand(2), Xsize, Ysize).convert(FloatCellType)
+    SinglebandGeoTiff(tiffExpandB2, geoTiffMul.extent, geoTiffMul.crs).write(eb2Path)
+    val tiffExpandB3 = DoubleArrayTile(expandDataBand(3), Xsize, Ysize).convert(FloatCellType)
+    SinglebandGeoTiff(tiffExpandB3, geoTiffMul.extent, geoTiffMul.crs).write(eb3Path)
     ArrayResult
-    // create mixed image from mask image and colorful image distributed
-//    CreateExpandRemainImg.createExpandRemaining(maskDataExpand, maskDataRemain,target25, sc, expand, remain)
   }
 }

@@ -134,4 +134,15 @@ object Utilities {
     }
     Math.sqrt(devs/(length-1))
   }
+  def arr2Dto3D (arr: Array[Array[Double]], Ysize: Int, Xsize: Int): Array[Array[Array[Double]]] = {
+    val arr3D: Array[Array[Array[Double]]] = Array.ofDim[Double](4, Ysize, Xsize)
+    for (index <- 0 until 4) {
+      for (y <- 0 until Ysize) {
+        for (x <- 0 until Xsize) {
+          arr3D(index)(y)(x) = arr(index)(x + Xsize*y)
+        }
+      }
+    }
+    arr3D
+  }
 }

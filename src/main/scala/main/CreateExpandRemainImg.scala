@@ -12,6 +12,9 @@ object CreateExpandRemainImg {
     val dataBand:Array[Array[Double]] = Utilities.Open4BandTif(targetPath)
     val Ysize = Utilities.getRowMultiBand(targetPath)
     val Xsize = Utilities.getColMultiBand(targetPath)
+//    geoTiffMul.raster.band(1).
+
+
 
     // parallel
 //    val expandMaskZip = sc.parallelize(expandMask)
