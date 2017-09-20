@@ -84,9 +84,15 @@ object Main {
     // Classification
     val train:String = "C:\\Users\\4dgis\\Desktop\\CoDe\\coastal-detection\\sourse\\Data\\New_Pansharp_data\\ImperviousTrain.csv"
     val test:String = "C:\\Users\\4dgis\\Desktop\\CoDe\\coastal-detection\\sourse\\Data\\New_Pansharp_data\\SG_20140415_ImperviousTest.csv"
-    val remainClass:String = "C:\\data\\ClassificationResult\\" + mixName + "_Changed_PXS_Classified.tif"
+    var remainClass:String = "C:\\data\\ClassificationResult\\" + mixName + "_Changed_PXS_Classified.tif"
     val expandClass:String = "C:\\data\\ClassificationResult\\" + mixName + "_Expand_PXS_Classified.tif"
+    val resultClass: String = "C:\\data\\ClassificationResult\\" + mixName + "_PXS_AggregatedResult.tif"
     Classification.classificationRemain(changeImgPath, remainClass, train, test, remainB0Path, remainB1Path, remainB2Path, remainB3Path)
     Classification.classificationExpand(changeImgPath, expandClass, train, test, expandB0Path, expandB1Path, expandB2Path, expandB3Path)
+    Classification.aggregateResult(sparkContext, expandClass, remainClass, resultClass)
+    val colorDir: String = "C:\\data\\ClassificationResult\\ColorResult\\"
+    val colorRemain: String = colorDir + "Change_PXS_Classified.png"
+    remainClass = "F:\\py_code_data\\ClassificationResult\\20150202_20150117\\20150202_20150117_Expand_PXS_Classified.tif"
+//    Classification.createPNG(remainClass, colorRemain)
   }
 }
