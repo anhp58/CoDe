@@ -18,7 +18,6 @@ def ClassificationRemain(imgb0, imgb1, imgb2, imgb3, changemask, outname, train,
     print "start classification of remain part..."
     train_feature = []
     train_label = []
-    print "ok"
     train_data = np.loadtxt(train, delimiter = ",")
     for data in train_data:
         B1, B2, B3, B4, Class = float(data[0]), float(data[1]), float(data[2]), float(data[3]), float(data[4])
@@ -32,8 +31,6 @@ def ClassificationRemain(imgb0, imgb1, imgb2, imgb3, changemask, outname, train,
     test_feature = []
     test_label = []
     test_data = np.loadtxt(test, delimiter = ",")
-    print "test_dataaaaaaaaa"
-    print test_data
 
     for data in test_data:
         B1, B2, B3, B4, Class = float(data[0]), float(data[1]), float(data[2]), float(data[3]), float(data[4])
@@ -54,22 +51,21 @@ def ClassificationRemain(imgb0, imgb1, imgb2, imgb3, changemask, outname, train,
 
     copyfile(changemask, outname)
     # pxs_set, pxs_band, pxs_data = Open4BandTif(image, GA_ReadOnly)
-    pxs_set, pxs_band, pxsb0_data = Open1BandTif(imgb0, GA_Update)
-    pxs_set, pxs_band, pxsb1_data = Open1BandTif(imgb1, GA_Update)
-    pxs_set, pxs_band, pxsb2_data = Open1BandTif(imgb2, GA_Update)
-    pxs_set, pxs_band, pxsb3_data = Open1BandTif(imgb3, GA_Update)
+    pxs0_set, pxs0_band, pxsb0_data = Open1BandTif(imgb0, GA_ReadOnly)
+    pxs1_set, pxs1_band, pxsb1_data = Open1BandTif(imgb1, GA_ReadOnly)
+    pxs2_set, pxs2_band, pxsb2_data = Open1BandTif(imgb2, GA_ReadOnly)
+    pxs3_set, pxs3_band, pxsb3_data = Open1BandTif(imgb3, GA_ReadOnly)
 
     classify_set, classify_band, classify_data = Open1BandTif(outname, GA_Update)
     change_set, change_band, change_data = Open1BandTif(changemask, GA_ReadOnly)
 
     YSize = pxs_set.RasterYSize
     XSize = pxs_set.RasterXSize
-
-
+    
     for y in range(0, YSize):
         for x in range(0, XSize):
             if change_data[y][x] == 1:
-                if math.isnan(pxsb0_data[y][x]) is not True:
+                # if math.isnan(pxsb0_data[y][x]) is not True:
                     b1 = pxsb0_data[y][x]
                     b2 = pxsb1_data[y][x]
                     b3 = pxsb2_data[y][x]

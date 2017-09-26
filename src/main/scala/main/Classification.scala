@@ -1,25 +1,66 @@
 package main
 
+import java.io.File
+
 import sys.process._
 import geotrellis.raster.io.geotiff._
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
-import java.awt.image.BufferedImage
-
-import geotrellis.raster.{DoubleArrayTile, FloatCellType}
-import geotrellis.raster.render._
+import geotrellis.raster.{DoubleArrayTile, DoubleCellType, FloatCellType}
 import org.apache.spark.SparkContext
+import main.Utils.{loadOrExit, show}
+import javax.swing.JFrame
+
+import geotrellis.spark
+import org.bytedeco.javacpp.opencv_imgcodecs.{IMREAD_COLOR, imread, _}
+import org.bytedeco.javacpp.opencv_imgproc._
+import org.apache.spark.ml.classification.LinearSVC
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.ml.linalg.Vectors
+import org.apache.spark.ml.feature.LabeledPoint
+
+
 
 
 object Classification {
-  def classificationRemain (changeImgPath: String, outname:String, trainPath: String, testPath: String, rb0:String , rb1: String, rb2: String, rb3:String): Unit = {
-    println("-----------start classification remain----------")
-    val command = "python F:\\CoDe\\src\\main\\scala\\main\\classification.py " + rb0 + " " + rb1 + " " + rb2 + " " + rb3 + " " + changeImgPath + " " + outname + " " + trainPath + " " + testPath
-    command.!
-    println(command)
+  def classificationRemain (sc:SparkContext, changeImgPath: String, outname:String, trainPath: String, testPath: String, rb0:String , rb1: String, rb2: String, rb3:String): Unit = {
+//    println("-----------start classification remain----------")
+//    val command = "python F:\\CoDe\\src\\main\\scala\\main\\classification.py " + rb0 + " " + rb1 + " " + rb2 + " " + rb3 + " " + changeImgPath + " " + outname + " " + trainPath + " " + testPath
+//    command.!
+//    println(command)
+    val spark = SparkSession
+      .builder
+      .appName("LinearSVCExample")
+      .getOrCreate()
+    val training = spark.read.format("libsvm").load(trainPath)
+    val lsvc = new LinearSVC()
+    val lsvcModel = lsvc.fit(training)
+    val testing = spark.read.format("libsvm").load(testPath)
+//    testing.foreach(println(_))
+    lsvcModel.setThreshold(0)
+//    lsvcModel.transform(testing).show(400)
+    //classification data
+
+    val rb0Data = Utilities.Open1BandTif(rb0)
+    val rb1Data = Utilities.Open1BandTif(rb1)
+    val rb2Data = Utilities.Open1BandTif(rb2)
+    val rb3Data = Utilities.Open1BandTif(rb3)
+
+    val Xsize = Utilities.getColSingleBand(rb0)
+    val Ysize = Utilities.getRowSingleBand(rb0)
+
+    var remainTestData : Seq[LabeledPoint] = Seq[LabeledPoint]()
+    for (i <- 0 until Ysize*Xsize) {
+      if (rb0Data(i) != Double.NaN)
+        remainTestData :+= LabeledPoint(0.0, Vectors.sparse(4, Array(0,1,2,3), Array(rb0Data(i), rb1Data(i), rb2Data(i), rb3Data(i))))
+    }
+    val remainDataDF: DataFrame = spark.createDataFrame(remainTestData).toDF()
+    remainTestData.foreach(println(_))
+    remainDataDF.foreach(println(_))
+    lsvcModel.transform(remainDataDF).show()
   }
-  def classificationExpand (remainImgPath: String, outname:String, trainPath: String, testPath: String, eb0:String , eb1: String, eb2: String, eb3:String): Unit = {
+  def classificationExpand (changeImgPath: String, outname:String, trainPath: String, testPath: String, eb0:String , eb1: String, eb2: String, eb3:String): Unit = {
     println("-----------start classification expand----------")
-    val command = "python F:\\CoDe\\src\\main\\scala\\main\\classification.py " + eb0 + " " + eb1 + " " + eb2 + " " + eb3 + " " + remainImgPath + " " + outname + " " + trainPath + " " + testPath
+    val command = "python F:\\CoDe\\src\\main\\scala\\main\\classify_extend.py " + eb0 + " " + eb1 + " " + eb2 + " " + eb3 + " " + changeImgPath + " " + outname + " " + trainPath + " " + testPath
     command.!
     println(command)
   }
@@ -46,21 +87,23 @@ object Classification {
     SinglebandGeoTiff(resultTiff, expandSingTif.extent, expandSingTif.crs).write(result)
   }
   def createPNG (tifImg: String, colorExpand: String): Unit = {
-    val geoTifSing: SinglebandGeoTiff = GeoTiffReader.readSingleband(tifImg)
+//    val geoTifSing: SinglebandGeoTiff = GeoTiffReader.readSingleband(tifImg)
+//    SinglebandGeoTiff(tifImg).tile.convert(DoubleCellType).renderPng().write(colorExpand)
     println("-----redering png----------")
-    val colorRamp =
-      ColorRamp(
-        RGB(0,255,0),
-        RGB(63, 255 ,51),
-        RGB(102,255,102),
-        RGB(178, 255,102),
-        RGB(255,255,0),
-        RGB(255,255,51),
-        RGB(255,153, 51),
-        RGB(255,128,0),
-        RGB(255,51,51),
-        RGB(255,0,0)
-      )
-    geoTifSing.tile.renderPng(colorRamp).write(colorExpand)
+    val img = imread(tifImg + ".TIF", CV_LOAD_IMAGE_ANYCOLOR)
+//    val img = loadOrExit(new File(tifImg + ".TIF"), CV_LOAD_IMAGE_ANYCOLOR)
+    imwrite(colorExpand + ".png", img)
+
+//    println(new File(colorExpand))
+//    val img: BufferedImage  = ImageIO.read(new FileInputStream(tifImg))
+//    ImageIO.write(img, "png", new File(colorExpand))
+//    var img2 = ImageIO.read(new File("C:\\data\\ClassificationResult\\ColorResult\\Expand_PXS_Classified.png"))
+//    var count = 0
+//    for (x <-0 until img.getWidth()) {
+//      for (y <- 0 until  img.getHeight()) {
+//        if (img.getRGB(x,y) != 0) img.setRGB(x,y,255)
+//      }
+//    }
+//    println(count)
   }
 }

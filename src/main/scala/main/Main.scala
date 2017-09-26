@@ -11,8 +11,8 @@ object Main {
   def main(args: Array[String]): Unit = {
     println(".........starting..............")
     val configSp: SparkConf = new SparkConf().setAppName("CoDe").setMaster("local[*]")
+//    val configSp: SparkConf = new SparkConf().setAppName("CoDe").setMaster("spark://192.168.2.23:7077")
     val sparkContext: SparkContext = new SparkContext(configSp)
-
     println("................done creating spark context.............")
 
     // commit 2 RDD
@@ -58,8 +58,9 @@ object Main {
     val expandB3Path: String = expandDir + mixName + "_Expand_PXS" + "_B3.tif"
 
 
-    val remainDataBand = DetectExpandRemain.detectExpandRemain(target25, baseDir + refCloud, baseDir + refWater, baseDir +targetCloud, baseDir + targetWater, remainB0Path, remainB1Path, remainB2Path, remainB3Path, expandB0Path, expandB1Path, expandB2Path, expandB3Path)(1)
-//    val expandDataBand: Array[Array[Double]] = DetectExpandRemain.detectExpandRemain(target25, refCloud, refWater, targetCloud, targetWater)(0)
+//    val remainExpandDataBand:Array[Array[Array[Double]]] = DetectExpandRemain.detectExpandRemain(target25, baseDir + refCloud, baseDir + refWater, baseDir +targetCloud, baseDir + targetWater, remainB0Path, remainB1Path, remainB2Path, remainB3Path, expandB0Path, expandB1Path, expandB2Path, expandB3Path)
+//    val remainDataBand: Array[Array[Double]] = remainExpandDataBand(1)
+//    val expandDataBand: Array[Array[Double]] = remainExpandDataBand(0)
     //Radiometric normalization
 //    val norDataBand: Array[Array[Double]] = RadiometricNormalization.radiometricNormalization(sparkContext, ref25, remainDataBand)
     //create ndfeture for dst img
@@ -80,19 +81,21 @@ object Main {
 //    CreateDifferenceImage.createDifferenceImage(sparkContext, srcndnviFileName, srcnd31FileName, srcbrightFileName, dstndnviFileName, dstnd31FileName, dstbrightFileName, differenceFileName, brightFileName)
     //Detect Change
     val changeImgPath: String = Utilities.setMaskChangeName(mixName, "_PXS_Changed_All")
-    DetectChange.detectChange(sparkContext, differenceFileName, brightFileName, changeImgPath)
+//    DetectChange.detectChange(sparkContext, differenceFileName, brightFileName, changeImgPath)
     // Classification
-    val train:String = "C:\\Users\\4dgis\\Desktop\\CoDe\\coastal-detection\\sourse\\Data\\New_Pansharp_data\\ImperviousTrain.csv"
-    val test:String = "C:\\Users\\4dgis\\Desktop\\CoDe\\coastal-detection\\sourse\\Data\\New_Pansharp_data\\SG_20140415_ImperviousTest.csv"
+    val train:String = "C:\\data\\Train\\train.data"
+    val test:String = "C:\\data\\Test\\test.data"
+//    val train: String = "hdfs://192.168.2.23:9000/user/pa/train.data"
+//    val test: String = "hdfs://192.168.2.23:9000/user/pa/test.data"
     var remainClass:String = "C:\\data\\ClassificationResult\\" + mixName + "_Changed_PXS_Classified.tif"
     val expandClass:String = "C:\\data\\ClassificationResult\\" + mixName + "_Expand_PXS_Classified.tif"
     val resultClass: String = "C:\\data\\ClassificationResult\\" + mixName + "_PXS_AggregatedResult.tif"
-    Classification.classificationRemain(changeImgPath, remainClass, train, test, remainB0Path, remainB1Path, remainB2Path, remainB3Path)
-    Classification.classificationExpand(changeImgPath, expandClass, train, test, expandB0Path, expandB1Path, expandB2Path, expandB3Path)
-    Classification.aggregateResult(sparkContext, expandClass, remainClass, resultClass)
+    Classification.classificationRemain(sparkContext, changeImgPath, remainClass, train, test, remainB0Path, remainB1Path, remainB2Path, remainB3Path)
+//    Classification.classificationExpand(changeImgPath, expandClass, train, test, expandB0Path, expandB1Path, expandB2Path, expandB3Path)
+//    Classification.aggregateResult(sparkContext, expandClass, remainClass, resultClass)
     val colorDir: String = "C:\\data\\ClassificationResult\\ColorResult\\"
-    val colorRemain: String = colorDir + "Change_PXS_Classified.png"
-    remainClass = "F:\\py_code_data\\ClassificationResult\\20150202_20150117\\20150202_20150117_Expand_PXS_Classified.tif"
+    val colorRemain: String = colorDir + "Changed_PXS_Classified"
+    remainClass = "C:\\data\\ClassificationResult\\20150117_20150202_Changed_PXS_Classified"
 //    Classification.createPNG(remainClass, colorRemain)
   }
 }

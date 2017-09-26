@@ -17,17 +17,21 @@ object CreateNDFreatures {
     val nd31DataRdd = sc.parallelize(norDataBand(2)).zip(sc.parallelize(norDataBand(0))).map {
       case (a,b) => Utilities.NDIndex(a,b)
     }
-    val brightDataRdd = sc.parallelize(norDataBand(0))
-      .zip(sc.parallelize(norDataBand(1)))
-      .zip(sc.parallelize(norDataBand(2)))
-      .zip(sc.parallelize(norDataBand(3))).map {
-      case ((((a,b),c), d)) => Utilities.Brightness(a,b,c,d)
+//    val brightDataRdd = sc.parallelize(norDataBand(0))
+//      .zip(sc.parallelize(norDataBand(1)))
+//      .zip(sc.parallelize(norDataBand(2)))
+//      .zip(sc.parallelize(norDataBand(3))).map {
+//      case ((((a,b),c), d)) => Utilities.Brightness(a,b,c,d)
+//    }
+    val brightData: Array[Double] = Array.ofDim[Double](Ysize*Xsize)
+    for (index <- 0 until Ysize*Xsize) {
+      brightData(index) = Utilities.Brightness(norDataBand(0)(index), norDataBand(1)(index), norDataBand(2)(index), norDataBand(3)(index))
     }
     val ndviTiff = FloatArrayTile(ndviDataRdd.collect(), Xsize, Ysize).convert(FloatCellType)
     SinglebandGeoTiff(ndviTiff, geoTiffMul.extent, geoTiffMul.crs).write(ndviPath)
     val nd31Tiff = FloatArrayTile(nd31DataRdd.collect(), Xsize, Ysize).convert(FloatCellType)
     SinglebandGeoTiff(nd31Tiff, geoTiffMul.extent, geoTiffMul.crs).write(nd31Path)
-    val brightTiff = FloatArrayTile(brightDataRdd.collect(), Xsize, Ysize).convert(FloatCellType)
+    val brightTiff = DoubleArrayTile(brightData, Xsize, Ysize).convert(FloatCellType)
     SinglebandGeoTiff(brightTiff, geoTiffMul.extent, geoTiffMul.crs).write(brightPath)
   }
 }

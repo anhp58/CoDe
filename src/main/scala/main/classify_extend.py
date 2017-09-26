@@ -48,10 +48,10 @@ def ClassificationExtend(imgb0, imgb1, imgb2, imgb3, changemask, outname, train,
 
     copyfile(changemask, outname)
     # pxs_set, pxs_band, pxs_data = Open4BandTif(image, GA_ReadOnly)
-    pxsb0_set, pxsb0_band, pxsb0_data = Open1BandTif(imgb0, GA_Update)
-    pxsb1_set, pxsb1_band, pxsb1_data = Open1BandTif(imgb1, GA_Update)
-    pxsb2_set, pxsb2_band, pxsb2_data = Open1BandTif(imgb2, GA_Update)
-    pxsb3_set, pxsb3_band, pxsb3_data = Open1BandTif(imgb3, GA_Update)
+    pxsb0_set, pxsb0_band, pxsb0_data = Open1BandTif(imgb0, GA_ReadOnly)
+    pxsb1_set, pxsb1_band, pxsb1_data = Open1BandTif(imgb1, GA_ReadOnly)
+    pxsb2_set, pxsb2_band, pxsb2_data = Open1BandTif(imgb2, GA_ReadOnly)
+    pxsb3_set, pxsb3_band, pxsb3_data = Open1BandTif(imgb3, GA_ReadOnly)
 
     classify_set, classify_band, classify_data = Open1BandTif(outname, GA_Update)
 
