@@ -151,12 +151,12 @@ object DetectChange {
     var thresholdHuang: Double = 0
     var thresholdkapur: Double = 0
 
-    if (dataHuang != None) thresholdHuang = huang(dataHuang)*0.005
+    if (!dataHuang.isEmpty) thresholdHuang = huang(dataHuang)*0.005
 
     println("ok")
     println("Huang" + thresholdHuang)
 
-    if (dataKapur != None) thresholdkapur = kapur(dataKapur)*0.005
+    if (!dataKapur.isEmpty) thresholdkapur = kapur(dataKapur)*0.005
 
     println("ok")
     println("Kapur" + thresholdkapur)

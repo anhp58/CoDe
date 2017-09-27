@@ -32,31 +32,48 @@ object Classification {
       .appName("LinearSVCExample")
       .getOrCreate()
     val training = spark.read.format("libsvm").load(trainPath)
-    val lsvc = new LinearSVC()
-    val lsvcModel = lsvc.fit(training)
     val testing = spark.read.format("libsvm").load(testPath)
+    val lsvc = new LinearSVC()
+    val lsvcModel = lsvc.fit(testing)
 //    testing.foreach(println(_))
-    lsvcModel.setThreshold(0)
+//    lsvcModel.setThreshold(0)
 //    lsvcModel.transform(testing).show(400)
     //classification data
 
-    val rb0Data = Utilities.Open1BandTif(rb0)
-    val rb1Data = Utilities.Open1BandTif(rb1)
-    val rb2Data = Utilities.Open1BandTif(rb2)
-    val rb3Data = Utilities.Open1BandTif(rb3)
+    val rb0Data: Array[Double] = Utilities.Open1BandTif(rb0)
+    val rb1Data: Array[Double] = Utilities.Open1BandTif(rb1)
+    val rb2Data: Array[Double] = Utilities.Open1BandTif(rb2)
+    val rb3Data: Array[Double] = Utilities.Open1BandTif(rb3)
+    val changeData: Array[Double] = Utilities.Open1BandTif(changeImgPath)
 
-    val Xsize = Utilities.getColSingleBand(rb0)
-    val Ysize = Utilities.getRowSingleBand(rb0)
 
-    var remainTestData : Seq[LabeledPoint] = Seq[LabeledPoint]()
-    for (i <- 0 until Ysize*Xsize) {
-      if (rb0Data(i) != Double.NaN)
-        remainTestData :+= LabeledPoint(0.0, Vectors.sparse(4, Array(0,1,2,3), Array(rb0Data(i), rb1Data(i), rb2Data(i), rb3Data(i))))
+    val Xsize = Utilities.getColMultiBand(rb0)
+    val Ysize = Utilities.getRowMultiBand(rb0)
+
+    var classTestData: Seq[LabeledPoint] = Seq[LabeledPoint]()
+//    while (i < Ysize*Xsize ) {
+//      if (rb0Data(i) != Double.NaN)
+//        classTestData :+= LabeledPoint(0.0, Vectors.sparse(4, Array(0,1,2,3), Array(rb0Data(i), rb1Data(i), rb2Data(i), rb3Data(i))))
+//      i += 1
+//    }
+    val imgSize = Ysize*Xsize
+//    println("caculating")
+//    println(imgSize - Ysize*500)
+    var classRemainArr: Array[Double] = Array.ofDim[Double](Xsize*Ysize)
+    for (i <- 0 until imgSize) {
+      if (changeData(i) == 1) {
+        if (!rb0Data(i).isNaN) {
+          classTestData = Seq(LabeledPoint(0.0, Vectors.sparse(4, Array(0, 1, 2, 3), Array(rb0Data(i), rb1Data(i), rb2Data(i), rb3Data(i)))))
+          var remainDataDF: DataFrame = spark.createDataFrame(classTestData).toDF()
+          var prediction = lsvcModel.transform(remainDataDF).select("prediction").rdd.map( r => r(0)).collect()
+          classRemainArr(i) = prediction(0).toString.toDouble
+        }
+      } else classRemainArr(i) = 3
     }
-    val remainDataDF: DataFrame = spark.createDataFrame(remainTestData).toDF()
-    remainTestData.foreach(println(_))
-    remainDataDF.foreach(println(_))
-    lsvcModel.transform(remainDataDF).show()
+    val geoTiffSing: SinglebandGeoTiff = GeoTiffReader.readSingleband(rb0)
+    val Tiff = DoubleArrayTile(classRemainArr, Xsize, Ysize).convert(FloatCellType)
+    SinglebandGeoTiff(Tiff, geoTiffSing.extent, geoTiffSing.crs).write(outname)
+
   }
   def classificationExpand (changeImgPath: String, outname:String, trainPath: String, testPath: String, eb0:String , eb1: String, eb2: String, eb3:String): Unit = {
     println("-----------start classification expand----------")
@@ -93,7 +110,6 @@ object Classification {
     val img = imread(tifImg + ".TIF", CV_LOAD_IMAGE_ANYCOLOR)
 //    val img = loadOrExit(new File(tifImg + ".TIF"), CV_LOAD_IMAGE_ANYCOLOR)
     imwrite(colorExpand + ".png", img)
-
 //    println(new File(colorExpand))
 //    val img: BufferedImage  = ImageIO.read(new FileInputStream(tifImg))
 //    ImageIO.write(img, "png", new File(colorExpand))
