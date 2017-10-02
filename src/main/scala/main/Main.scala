@@ -10,8 +10,8 @@ import geotrellis.vector.ProjectedExtent
 object Main {
   def main(args: Array[String]): Unit = {
     println(".........starting..............")
-//    val configSp: SparkConf = new SparkConf().setAppName("CoDe").setMaster("local[*]")
-    val configSp: SparkConf = new SparkConf().setAppName("CoDe").setMaster("spark://192.168.2.23:7077")
+    val configSp: SparkConf = new SparkConf().setAppName("CoDe").setMaster("local[*]")
+//    val configSp: SparkConf = new SparkConf().setAppName("CoDe").setMaster("spark://192.168.2.23:7077")
     val sparkContext: SparkContext = new SparkContext(configSp)
     println("................done creating spark context.............")
     // commit 2 RDD
@@ -82,19 +82,22 @@ object Main {
     val changeImgPath: String = Utilities.setMaskChangeName(mixName, "_PXS_Changed_All")
 //    DetectChange.detectChange(sparkContext, differenceFileName, brightFileName, changeImgPath)
     // Classification
-//    val train:String = "C:\\data\\Train\\train.data"
-//    val test:String = "C:\\data\\Test\\test.data"
-    val train: String = "hdfs://192.168.2.23:9000/user/pa/train.data"
-    val test: String = "hdfs://192.168.2.23:9000/user/pa/test.data"
+    val train:String = "C:\\data\\Train\\train.data"
+    val test:String = "C:\\data\\Test\\test.data"
+//    val train: String = "hdfs://192.168.2.23:9000/user/pa/train.data"
+//    val test: String = "hdfs://192.168.2.23:9000/user/pa/test.data"
     var remainClass:String = "C:\\data\\ClassificationResult\\" + mixName + "_Changed_PXS_Classified.tif"
     val expandClass:String = "C:\\data\\ClassificationResult\\" + mixName + "_Expand_PXS_Classified.tif"
     val resultClass: String = "C:\\data\\ClassificationResult\\" + mixName + "_PXS_AggregatedResult.tif"
-    Classification.classificationRemain(sparkContext, changeImgPath, remainClass, train, test, remainB0Path, remainB1Path, remainB2Path, remainB3Path)
-//    Classification.classificationExpand(changeImgPath, expandClass, train, test, expandB0Path, expandB1Path, expandB2Path, expandB3Path)
+//    Classification.classificationRemain(sparkContext, changeImgPath, remainClass, train, test, remainB0Path, remainB1Path, remainB2Path, remainB3Path)
+//    Classification.classificationExpand(sparkContext, changeImgPath, expandClass, train, test, expandB0Path, expandB1Path, expandB2Path, expandB3Path)
 //    Classification.aggregateResult(sparkContext, expandClass, remainClass, resultClass)
     val colorDir: String = "C:\\data\\ClassificationResult\\ColorResult\\"
     val colorRemain: String = colorDir + "Changed_PXS_Classified"
-    remainClass = "C:\\data\\ClassificationResult\\20150117_20150202_Changed_PXS_Classified"
-//    Classification.createPNG(remainClass, colorRemain)
+      val colorExpand: String = colorDir + "Expand_PXS_Classified"
+      val colorResult: String = colorDir + "PXS_AggregatedResult"
+    Classification.createPNG(remainClass, colorRemain)
+      Classification.createPNG(expandClass, colorExpand)
+      Classification.createPNG(resultClass, colorResult)
   }
 }
