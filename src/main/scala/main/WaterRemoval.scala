@@ -9,13 +9,13 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
 object WaterRemoval {
-  def waterRemoval (pathMultipleBand: String, sc: SparkContext): Unit = {
+  def waterRemoval (pathMultipleBand: String, sc: SparkContext, outname: String): Unit = {
     val geoTiffMul: MultibandGeoTiff = GeoTiffReader.readMultiband(pathMultipleBand)
     val dataBand:Array[Array[Double]] = Utilities.Open4BandTif(pathMultipleBand)
     val Ysize = Utilities.getRowMultiBand(pathMultipleBand)
     val Xsize = Utilities.getColMultiBand(pathMultipleBand)
     var imgSize = (Ysize*Xsize)
-    val waterMaskFileName = Utilities.setMaskWaterName("TOA_VNR20150117_PXS_Clip_coastal")
+    val waterMaskFileName = Utilities.setMaskWaterName(outname)
     var waterMask = Nd4j.zeros(Ysize*Xsize)
     var waterIndex = 0.0
 

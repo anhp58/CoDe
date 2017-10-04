@@ -7,13 +7,13 @@ import org.nd4j.linalg.factory.Nd4j
 import org.nd4s.Implicits._
 
 object CloudRemoval {
-  def cloudRemoval (pathMultipleBand:String): Unit = {
+  def cloudRemoval (pathMultipleBand:String, outname: String): Unit = {
     val geoTiffMul: MultibandGeoTiff = GeoTiffReader.readMultiband(pathMultipleBand)
     val dataBand:Array[Array[Double]] = Utilities.Open4BandTif(pathMultipleBand)
     val Ysize = Utilities.getRowMultiBand(pathMultipleBand)
     val Xsize = Utilities.getColMultiBand(pathMultipleBand)
 
-    val cloudMaskFileName = Utilities.setMaskCloudName("TOA_VNR20150117_PXS_Clip_coastal")
+    val cloudMaskFileName = Utilities.setMaskCloudName(outname)
 
     println("image size:" + "[" + Xsize + "," + Ysize + "]")
     //create thin cloud mask band
@@ -51,20 +51,12 @@ object CloudRemoval {
       else maskData(index) = 0
     }
 
-
-    //    val maskDataRdd:RDD[Double] = sparkContext.parallelize(maskData)
-
-    println("2D maskdata array converting")
-
     var maskData2D = Array.ofDim[Double](Ysize, Xsize)
     for ( y <- 0 to  Ysize-1) {
       for ( x <- 0 to  Xsize-1) {
         maskData2D(y)(x) = maskData(x + Xsize*y)
       }
     }
-
-    println("3D databand array converting")
-
     var dataBand3D = Array.ofDim[Double](4,Ysize, Xsize)
     for (index <- 0 to 3) {
       for (y <- 0 to Ysize - 1) {
@@ -73,7 +65,6 @@ object CloudRemoval {
         }
       }
     }
-    println("thick cloud processing")
     var band0 = 0.0
     var band1 = 0.0
     var band2 = 0.0
@@ -81,7 +72,6 @@ object CloudRemoval {
     var countCloud = 0
     var k = 0
     var cloudWindow = Array.ofDim[Double](25)
-
 
     for (y <- 0 to Ysize - 1) {
       for (x <- 0 to Xsize - 1) {
@@ -111,7 +101,6 @@ object CloudRemoval {
         }
       }
     }
-    println("start smoothing processing")
     var maskDataFinal = Nd4j.zeros(Ysize,Xsize)
     for (y <- 0 to Ysize - 1) {
       for (x <- 0 to Xsize - 1) {
@@ -136,8 +125,6 @@ object CloudRemoval {
         else maskDataFinal(y,x) = 0
       }
     }
-    println("writing tiff cloud mask image................")
-
     var tiffMaskFinalData = Array.ofDim[Double](Ysize*Xsize)
     var indexFinal = 0
     for (y <- 0 to Ysize - 1) {
@@ -148,8 +135,5 @@ object CloudRemoval {
     }
     val Tiff = DoubleArrayTile(tiffMaskFinalData, Xsize, Ysize).convert(FloatCellType)
     SinglebandGeoTiff(Tiff, geoTiffMul.extent, geoTiffMul.crs).write(cloudMaskFileName)
-    println("done removing cloud")
-    println(geoTiffMul.extent)
-    println(geoTiffMul.crs)
   }
 }

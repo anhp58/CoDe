@@ -1,5 +1,7 @@
 package main
 
+import java.io.File
+
 import geotrellis.raster.{DoubleArrayTile, FloatCellType, Tile}
 import geotrellis.raster.io.geotiff.{MultibandGeoTiff, SinglebandGeoTiff}
 import geotrellis.raster.io.geotiff.reader.GeoTiffReader
@@ -87,11 +89,11 @@ object Utilities {
   }
   def setMaskCloudName(name:String): String = {
     val maskCloudDir = "C:\\data\\Cloud_mask\\"
-    maskCloudDir + name + "_Cloud" + ".tif"
+    maskCloudDir + name + ".tif"
   }
   def setMaskWaterName(name:String): String = {
     val maskWaterDir = "C:\\data\\Water_mask\\"
-    maskWaterDir + name + "_Water" + ".tif"
+    maskWaterDir + name + ".tif"
   }
   def setMaskFeatureName(name:String, featureName: String): String = {
     val maskNdviDir = "C:\\data\\Feature\\"
@@ -163,5 +165,8 @@ object Utilities {
     }
     val weightedDataset = dataset.withColumn("classWeightCol", calculateWeights(dataset("label")))
     weightedDataset
+  }
+  def createDir(path: String): Unit = {
+    new File(path).mkdir()
   }
 }
