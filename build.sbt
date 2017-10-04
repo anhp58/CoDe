@@ -28,3 +28,9 @@ assemblyMergeStrategy in assembly := {
   case x => MergeStrategy.first
 }
 
+libraryDependencies += "org.bytedeco" % "javacpp" % "1.3.3"
+libraryDependencies += "org.apache.hadoop" % "hadoop-client" % "2.7.2"
+
+libraryDependencies ++= Seq(
+  "org.apache.spark" %% "spark-mllib" % "2.2.0"
+)
