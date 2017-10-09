@@ -23,10 +23,7 @@ import org.bytedeco.javacpp.opencv_core.Mat
 import org.bytedeco.javacpp.opencv_ml.LogisticRegression
 
 object Classification {
-  def classificationRemain (sc:SparkContext, changeImgPath: String, remainClass:String, expandClass: String,
-                            trainPath: String, testPath: String,
-                            rb0:String , rb1: String, rb2: String, rb3:String,
-                           eb0: String, eb1: String, eb2: String, eb3: String): Unit = {
+  def classification (sc:SparkContext, changeImgPath: String, remainClass:String, expandClass: String, trainPath: String, testPath: String, remainPath: String, expandPath: String): Unit = {
     val spark = SparkSession
       .builder
       .appName("LinearSVCExample")
@@ -37,22 +34,15 @@ object Classification {
     val lsvcModel = lsvc.fit(Utilities.balanceDataset(training))
 
     //classification remain data
-    val rb0Data: Array[Double] = Utilities.Open1BandTif(rb0)
-    val rb1Data: Array[Double] = Utilities.Open1BandTif(rb1)
-    val rb2Data: Array[Double] = Utilities.Open1BandTif(rb2)
-    val rb3Data: Array[Double] = Utilities.Open1BandTif(rb3)
+    val remainData: Array[Array[Double]] = Utilities.Open4BandTif(remainPath)
     //
     //classification expand data
-    val eb0Data: Array[Double] = Utilities.Open1BandTif(eb0)
-    val eb1Data: Array[Double] = Utilities.Open1BandTif(eb1)
-    val eb2Data: Array[Double] = Utilities.Open1BandTif(eb2)
-    val eb3Data: Array[Double] = Utilities.Open1BandTif(eb3)
+    val expandData: Array[Array[Double]] = Utilities.Open4BandTif(expandPath)
     //
     val changeData: Array[Double] = Utilities.Open1BandTif(changeImgPath)
 
-
-    val Xsize = Utilities.getColMultiBand(rb0)
-    val Ysize = Utilities.getRowMultiBand(rb0)
+    val Xsize = Utilities.getColMultiBand(remainPath)
+    val Ysize = Utilities.getRowMultiBand(remainPath)
 
     val imgSize = Ysize*Xsize
     var classRemainArr: Array[Double] = Array.ofDim[Double](Xsize*Ysize)
@@ -60,89 +50,46 @@ object Classification {
     //classification remain
     //
     var remainDataDF: DataFrame = spark
-      .createDataFrame(Seq(LabeledPoint(0.0, Vectors.sparse(4, Array(0, 1, 2, 3), Array(rb0Data(0), rb1Data(0), rb2Data(0), rb3Data(0))))))
+      .createDataFrame(Seq(LabeledPoint(0.0, Vectors.sparse(4, Array(0, 1, 2, 3), Array(remainData(0)(0), remainData(1)(0), remainData(2)(0), remainData(3)(0))))))
       .toDF()
     //classification expand
     var expandDataDF: DataFrame = spark
-      .createDataFrame(Seq(LabeledPoint(0.0, Vectors.sparse(4, Array(0, 1, 2, 3), Array(eb0Data(0), eb1Data(0), eb2Data(0), eb3Data(0))))))
+      .createDataFrame(Seq(LabeledPoint(0.0, Vectors.sparse(4, Array(0, 1, 2, 3), Array(expandData(0)(0), expandData(1)(0), expandData(2)(0), expandData(3)(0))))))
       .toDF()
     //
     for (i <- 0 until imgSize) {
       if (changeData(i) == 1) {
-        if (!rb0Data(i).isNaN) {
+        if (!remainData(0)(i).isNaN) {
           remainDataDF = spark
-            .createDataFrame(Seq(LabeledPoint(0.0, Vectors.sparse(4, Array(0, 1, 2, 3), Array(rb0Data(i), rb1Data(i), rb2Data(i), rb3Data(i))))))
+            .createDataFrame(Seq(LabeledPoint(0.0, Vectors.sparse(4, Array(0, 1, 2, 3), Array(remainData(0)(i), remainData(1)(i), remainData(2)(i), remainData(3)(i))))))
             .toDF()
-          classRemainArr(i) = lsvcModel.transform(remainDataDF).select("prediction").collectAsList().get(0)(0).toString.toDouble
+//          classRemainArr(i) = lsvcModel.transform(remainDataDF).select("prediction").collectAsList().get(0)(0).toString.toDouble
+          classRemainArr(i) = lsvcModel.transform(remainDataDF).select("prediction").first().getDouble(0)
         }
       } else classRemainArr(i) = 3
       // classification expand
-      if (eb0Data(i) > 0) {
-        if (!eb0Data(i).isNaN) {
+      if (expandData(0)(i) > 0) {
+        if (!expandData(0)(i).isNaN) {
           expandDataDF = spark
-            .createDataFrame(Seq(LabeledPoint(0.0, Vectors.sparse(4, Array(0, 1, 2, 3), Array(eb0Data(i), eb1Data(i), eb2Data(i), eb3Data(i))))))
+            .createDataFrame(Seq(LabeledPoint(0.0, Vectors.sparse(4, Array(0, 1, 2, 3), Array(expandData(0)(i), expandData(1)(i), expandData(2)(i), expandData(3)(i))))))
             .toDF()
-          classExpandArr(i) = lsvcModel.transform(expandDataDF).select("prediction").collectAsList().get(0)(0).toString.toDouble
+//          classExpandArr(i) = lsvcModel.transform(expandDataDF).select("prediction").collectAsList().get(0)(0).toString.toDouble
+          classExpandArr(i) = lsvcModel.transform(expandDataDF).select("prediction").first().getDouble(0)
         }
       } else classExpandArr(i) = 3
       //
     }
     //classification remain tiff
-    val geoTiffSingRemain: SinglebandGeoTiff = GeoTiffReader.readSingleband(rb0)
+    val geoTiffMulR: MultibandGeoTiff = GeoTiffReader.readMultiband(remainPath)
     val tiffRemain = DoubleArrayTile(classRemainArr, Xsize, Ysize).convert(FloatCellType)
-    SinglebandGeoTiff(tiffRemain, geoTiffSingRemain.extent, geoTiffSingRemain.crs).write(remainClass)
+    SinglebandGeoTiff(tiffRemain, geoTiffMulR.extent, geoTiffMulR.crs).write(remainClass)
     //
     //classification expand tiff
-    val geoTiffSingExpand: SinglebandGeoTiff = GeoTiffReader.readSingleband(eb0)
+    val geoTiffMulE: MultibandGeoTiff = GeoTiffReader.readMultiband(expandPath)
     val tiffExpand = DoubleArrayTile(classExpandArr, Xsize, Ysize).convert(FloatCellType)
-    SinglebandGeoTiff(tiffExpand, geoTiffSingExpand.extent, geoTiffSingExpand.crs).write(expandClass)
+    SinglebandGeoTiff(tiffExpand, geoTiffMulE.extent, geoTiffMulE.crs).write(expandClass)
 
   }
-//  def classificationExpand (sc:SparkContext, changeImgPath: String, outname:String, trainPath: String, testPath: String, eb0:String , eb1: String, eb2: String, eb3:String): Unit = {
-//    val spark = SparkSession
-//      .builder
-//      .appName("LinearSVCExample")
-//      .getOrCreate()
-//    //training model
-//    val training = spark.read.format("libsvm").load(trainPath)
-//    val testing = spark.read.format("libsvm").load(testPath)
-//    val lsvc = new LinearSVC().setWeightCol("classWeightCol").setLabelCol("label").setFeaturesCol("features")
-//    val lsvcModel = lsvc.fit(Utilities.balanceDataset(training))
-//    //classification data
-//    val eb0Data: Array[Double] = Utilities.Open1BandTif(eb0)
-//    val eb1Data: Array[Double] = Utilities.Open1BandTif(eb1)
-//    val eb2Data: Array[Double] = Utilities.Open1BandTif(eb2)
-//    val eb3Data: Array[Double] = Utilities.Open1BandTif(eb3)
-//    val changeData: Array[Double] = Utilities.Open1BandTif(changeImgPath)
-//
-//    val Xsize = Utilities.getColMultiBand(eb0)
-//    val Ysize = Utilities.getRowMultiBand(eb0)
-//
-//    var classTestData: Seq[LabeledPoint] = Seq[LabeledPoint]()
-//    val imgSize = Ysize*Xsize
-//    var classExpandArr: Array[Double] = Array.ofDim[Double](Xsize*Ysize)
-//    var expandDataDF: DataFrame = spark
-//      .createDataFrame(Seq(LabeledPoint(0.0, Vectors.sparse(4, Array(0, 1, 2, 3), Array(eb0Data(0), eb1Data(0), eb2Data(0), eb3Data(0))))))
-//      .toDF()
-//    for (i <- 0 until imgSize) {
-//      if (eb0Data(i) > 0) {
-//        if (!eb0Data(i).isNaN) {
-//          expandDataDF = spark
-//            .createDataFrame(Seq(LabeledPoint(0.0, Vectors.sparse(4, Array(0, 1, 2, 3), Array(eb0Data(i), eb1Data(i), eb2Data(i), eb3Data(i))))))
-//            .toDF()
-//          classExpandArr(i) = lsvcModel.transform(Utilities.balanceDataset(expandDataDF)).select("prediction").collectAsList().get(0)(0).toString.toDouble
-//        }
-//      } else classExpandArr(i) = 3
-//    }
-////    classTestData = Seq(LabeledPoint(0.0, Vectors.sparse(4, Array(0, 1, 2, 3), Array(eb0Data(1), eb1Data(1), eb2Data(1), eb3Data(1)))))
-////    var expandDataDF: DataFrame = spark.createDataFrame(classTestData).toDF()
-////    val prediction = lsvcModel.transform(expandDataDF).select("prediction").rdd.map( r=> r(0)).collect()
-////    val prediction = lsvcModel.transform(expandDataDF).select("prediction").collectAsList().get(0)(0)
-////    println(prediction)
-//    val geoTiffSing: SinglebandGeoTiff = GeoTiffReader.readSingleband(eb0)
-//    val Tiff = DoubleArrayTile(classExpandArr, Xsize, Ysize).convert(FloatCellType)
-//    SinglebandGeoTiff(Tiff, geoTiffSing.extent, geoTiffSing.crs).write(outname)
-//  }
   def  aggregateResult (sc: SparkContext, expand: String, remain: String, result: String) : Unit = {
     val expandData: Array[Double] = Utilities.Open1BandTif(expand)
     val remainData: Array[Double] = Utilities.Open1BandTif(remain)
@@ -169,10 +116,10 @@ object Classification {
     val Ysize = Utilities.getRowMultiBand(tifImg)
     val Xsize = Utilities.getColMultiBand(tifImg)
     // define color
-    val white = Color.white.getRGB
+    val black = Color.black.getRGB
     val yellow = Color.yellow.getRGB
-    val blue = Color.green.getRGB
-    val brown = new Color(165,42,42).getRGB
+    val blue = Color.blue.getRGB
+    val brown = new Color(153,76,0).getRGB
     val pink = new Color(255, 20,147).getRGB
     println("-----redering png----------")
     //read tiff file
@@ -184,9 +131,9 @@ object Classification {
     val pngResult: BufferedImage = new BufferedImage(png.getWidth, png.getHeight, BufferedImage.TYPE_3BYTE_BGR)
     for ( x <- 0 until  Xsize ) {
       for (y <- 0 until Ysize) {
-        if (png.getRGB(x,y) == -14935012) pngResult.setRGB(x,y,white) // water-white
-        if (png.getRGB(x,y) == -16777216) pngResult.setRGB(x,y,yellow) //remain-yellow
-        if (png.getRGB(x,y) == -14277082) pngResult.setRGB(x,y,blue) //expand-brown
+        if (png.getRGB(x,y) == -14935012) pngResult.setRGB(x,y,black) // water-white
+        if (png.getRGB(x,y) == -16777216) pngResult.setRGB(x,y,brown) //remain-yellow
+        if (png.getRGB(x,y) == -14277082) pngResult.setRGB(x,y,yellow) //expand-brown
         if (png.getRGB(x,y) == -15921907) pngResult.setRGB(x,y,pink) //im-pink
       }
     }

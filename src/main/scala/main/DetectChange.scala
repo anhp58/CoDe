@@ -33,6 +33,7 @@ object DetectChange {
     }
     var maxEnt = -10.0
     threshold = 0.0
+    var totalEnt = 0.0
     for (it <- 0 until len ) {
       // entropy of the backgroud
       var entBack = 0.0
@@ -49,7 +50,7 @@ object DetectChange {
         }
       }
       // total entropy
-      var totalEnt = entBack + entObj
+      totalEnt = entBack + entObj
       if (maxEnt < totalEnt) {
         maxEnt = totalEnt
         threshold = it
@@ -160,8 +161,6 @@ object DetectChange {
 
     println("ok")
     println("Kapur" + thresholdkapur)
-    thresholdHuang = 0.045
-    thresholdkapur = 0.155
 
     val newdata: RDD[Double] = sc.parallelize(brightSingDataBand).zip(sc.parallelize(ndviSingDataBand)).map {
       case (a,b) => if ((b > thresholdHuang) || (a > thresholdkapur)) 1 else 0

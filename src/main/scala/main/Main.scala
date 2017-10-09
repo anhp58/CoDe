@@ -30,10 +30,10 @@ object Main {
     val expandDir:String = "C:\\data\\Expand\\"
     val remainDir:String = "C:\\data\\Remain\\"
 
-    var refCloud = "Cloud_mask\\TOA_VNR20150117_PXS_Clip_coastal_Cloud.tif"
-    var refWater = "Water_mask\\TOA_VNR20150117_PXS_Clip_coastal_Water.tif"
-    var targetCloud = "Cloud_mask\\TOA_VNR20150202_PXS_Clip_coastal_Cloud.tif"
-    var targetWater = "Water_mask\\TOA_VNR20150202_PXS_Clip_coastal_Water.tif"
+    var refCloud = "Cloud_mask\\TOA_VNR20150117_XS_Clip_coastal_Cloud.tif"
+    var refWater = "Water_mask\\TOA_VNR20150117_XS_Clip_coastal_Water.tif"
+    var targetCloud = "Cloud_mask\\TOA_VNR20150202_XS_Clip_coastal_Cloud.tif"
+    var targetWater = "Water_mask\\TOA_VNR20150202_XS_Clip_coastal_Water.tif"
     // creating directory
     Utilities.createDir(baseDir + "Change")
     Utilities.createDir(baseDir + "ClassificationResult")
@@ -48,15 +48,15 @@ object Main {
     /*.
     ...
      */
-    CloudRemoval.cloudRemoval(ref25, "TOA_VNR20150117_PXS_Clip_coastal_Cloud")
-    CloudRemoval.cloudRemoval(target25, "TOA_VNR20150202_PXS_Clip_coastal_Cloud")
+    CloudRemoval.cloudRemoval(ref10, "TOA_VNR20150117_XS_Clip_coastal_Cloud")
+    CloudRemoval.cloudRemoval(target10, "TOA_VNR20150202_XS_Clip_coastal_Cloud")
     println("done removing cloud")
     //Water removal
     /*.
     ...
      */
-    WaterRemoval.waterRemoval(ref25, sparkContext, "TOA_VNR20150117_PXS_Clip_coastal_Water")
-    WaterRemoval.waterRemoval(target25, sparkContext, "TOA_VNR20150202_PXS_Clip_coastal_Water")
+    WaterRemoval.waterRemoval(ref10, sparkContext, "TOA_VNR20150117_XS_Clip_coastal_Water")
+    WaterRemoval.waterRemoval(target10, sparkContext, "TOA_VNR20150202_XS_Clip_coastal_Water")
     println("done removing water")
 
     val mixName:String = refCloud.subSequence(18, 26).toString + "_" + targetCloud.subSequence(18,26).toString
@@ -65,23 +65,21 @@ object Main {
     /*.
     ...
      */
-    val remainB0Path: String = remainDir + mixName + "_Remain_PXS" + "_B0.tif"
-    val remainB1Path: String = remainDir + mixName + "_Remain_PXS" + "_B1.tif"
-    val remainB2Path: String = remainDir + mixName + "_Remain_PXS" + "_B2.tif"
-    val remainB3Path: String = remainDir + mixName + "_Remain_PXS" + "_B3.tif"
-    val expandB0Path: String = expandDir + mixName + "_Expand_PXS" + "_B0.tif"
-    val expandB1Path: String = expandDir + mixName + "_Expand_PXS" + "_B1.tif"
-    val expandB2Path: String = expandDir + mixName + "_Expand_PXS" + "_B2.tif"
-    val expandB3Path: String = expandDir + mixName + "_Expand_PXS" + "_B3.tif"
-
-    val remainExpandDataBand:Array[Array[Array[Double]]] = DetectExpandRemain.detectExpandRemain(target25, baseDir + refCloud, baseDir + refWater, baseDir +targetCloud, baseDir + targetWater, remainB0Path, remainB1Path, remainB2Path, remainB3Path, expandB0Path, expandB1Path, expandB2Path, expandB3Path)
-    val remainDataBand: Array[Array[Double]] = remainExpandDataBand(1)
-    val expandDataBand: Array[Array[Double]] = remainExpandDataBand(0)
+    val expand10Path = baseDir + "Expand\\" + mixName + "_Expand_XS.tif"
+    val remain10Path = baseDir + "Remain\\" + mixName + "_Remain_XS.tif"
+    DetectExpandRemain.detectExpandRemain(baseDir + refCloud, baseDir + refWater, baseDir +targetCloud, baseDir + targetWater, expand10Path, remain10Path)
+    //convert 10m to 2.5m image
+    /*
+    ...
+     */
+    val expand25Path = baseDir + "Expand\\" + mixName + "_Expand_PXS.tif"
+    val remain25Path = baseDir + "Remain\\" + mixName + "_Remain_PXS.tif"
+    Utilities.convert10mTo25m(target25, expand10Path, remain10Path, expand25Path, remain25Path)
     //Radiometric normalization
     /*.
     ...
      */
-    val norDataBand: Array[Array[Double]] = RadiometricNormalization.radiometricNormalization(sparkContext, ref25, remainDataBand)
+    val norDataBand: Array[Array[Double]] = RadiometricNormalization.radiometricNormalization(sparkContext, ref25, remain25Path)
     //create ndfeture
     /*.
     ... for dst image
@@ -123,10 +121,7 @@ object Main {
     var remainClass:String = "C:\\data\\ClassificationResult\\" + mixName + "_Changed_PXS_Classified.tif"
     val expandClass:String = "C:\\data\\ClassificationResult\\" + mixName + "_Expand_PXS_Classified.tif"
     val resultClass: String = "C:\\data\\ClassificationResult\\" + mixName + "_PXS_AggregatedResult.tif"
-    Classification.classificationRemain(sparkContext, changeImgPath, expandClass, remainClass, train, test,
-        remainB0Path, remainB1Path, remainB2Path, remainB3Path,
-        expandB0Path, expandB1Path, expandB2Path, expandB3Path)
-//    Classification.classificationExpand(sparkContext, changeImgPath, expandClass, train, test, expandB0Path, expandB1Path, expandB2Path, expandB3Path)
+    Classification.classification(sparkContext, changeImgPath, remainClass, expandClass, train, test, remain25Path, expand25Path)
     Classification.aggregateResult(sparkContext, expandClass, remainClass, resultClass)
     //Color Images
     /*.

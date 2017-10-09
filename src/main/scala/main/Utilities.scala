@@ -9,6 +9,7 @@ import geotrellis.vector.ProjectedExtent
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import geotrellis.spark.io.hadoop._
+import sys.process._
 
 import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -168,5 +169,9 @@ object Utilities {
   }
   def createDir(path: String): Unit = {
     new File(path).mkdir()
+  }
+  def convert10mTo25m (srcPXS: String, expandXS: String, remainXS: String, expandPXS: String, remainPXS: String): Unit = {
+    val command = "python C:\\data\\python_code\\create_remainexpand_pxs.py " + srcPXS + " " + " " + expandXS + " " + remainXS + " " + expandPXS + " " + remainPXS
+    command!
   }
 }
